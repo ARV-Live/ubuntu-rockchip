@@ -85,7 +85,7 @@ lb config \
     --keyring-packages ubuntu-keyring \
     --linux-flavours "${KERNEL_FLAVOR}"
 
-if [ "${SUITE}" == "noble" ] || [ "${SUITE}" == "jammy" ]; then
+if [ "${SUITE}" == "noble" ]; then
     # Pin rockchip package archives
     (
         echo "Package: *"
