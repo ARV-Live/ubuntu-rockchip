@@ -7,7 +7,7 @@ run-name: Build
 
 jobs:
   rootfs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     name: Build rootfs
     strategy:
         matrix:
@@ -44,6 +44,17 @@ jobs:
           python-is-python3 fdisk bc debhelper python3-pyelftools python3-setuptools \
           python3-pkg-resources swig libfdt-dev libpython3-dev dctrl-tools
 
+      # Cache live-build's downloaded packages / bootstrap so re-runs skip the
+      # re-download. Rolling key (per run) + restore-keys reuses the newest.
+      # Purely an accelerator: a miss just re-downloads.
+      - name: Cache live-build downloads
+        uses: actions/cache@v4
+        with:
+          path: build/live-build/cache
+          key: lb-cache-${{ matrix.suite }}-${{ matrix.flavor }}-${{ github.run_id }}
+          restore-keys: |
+            lb-cache-${{ matrix.suite }}-${{ matrix.flavor }}-
+
       - name: Build
         shell: bash
         run: sudo ./build.sh --suite=${{ matrix.suite }} --flavor=${{ matrix.flavor }} --rootfs-only
@@ -56,7 +67,7 @@ jobs:
             if-no-files-found: error
 
   kernel:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     name: Build kernel
     strategy:
         matrix:
@@ -91,7 +102,24 @@ jobs:
           python-is-python3 fdisk bc debhelper python3-pyelftools python3-setuptools \
           python3-pkg-resources swig libfdt-dev libpython3-dev
 
+      # The kernel is pinned to a branch; key the cache on its exact HEAD
+      # commit so a hit always corresponds to identical source (no staleness).
+      - name: Resolve kernel commit
+        id: kver
+        shell: bash
+        run: |
+          source config/suites/${{ matrix.suite }}.sh
+          echo "sha=$(git ls-remote "$KERNEL_REPO" "$KERNEL_BRANCH" | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache kernel packages
+        id: kcache
+        uses: actions/cache@v4
+        with:
+          path: build/linux-*.deb
+          key: kernel-${{ matrix.suite }}-${{ steps.kver.outputs.sha }}
+
       - name: Build
+        if: steps.kcache.outputs.cache-hit != 'true'
         shell: bash
         run: sudo ./build.sh --suite=${{ matrix.suite }} --kernel-only
 
@@ -103,7 +131,7 @@ jobs:
             if-no-files-found: error
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: [rootfs, kernel]
     name: Build image
 
@@ -145,6 +173,23 @@ jobs:
           python-is-python3 fdisk bc debhelper python3-pyelftools python3-setuptools \
           python3-pkg-resources swig libfdt-dev libpython3-dev dctrl-tools
 
+      # U-Boot is pinned to an exact commit in debian/upstream; key on it so a
+      # hit always matches the source. build.sh skips the u-boot build when the
+      # .deb is already present in build/.
+      - name: Resolve u-boot commit
+        id: uver
+        shell: bash
+        run: |
+          source packages/u-boot-radxa-rk3588/debian/upstream
+          echo "sha=$COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Cache u-boot package
+        id: ucache
+        uses: actions/cache@v4
+        with:
+          path: build/u-boot-${{ matrix.board }}_*.deb
+          key: uboot-${{ matrix.board }}-${{ steps.uver.outputs.sha }}
+
       - name: Checkout rootfs
         uses: actions/download-artifact@v4.1.2
         with:
@@ -167,7 +212,3 @@ jobs:
           name: ubuntu-24.04-preinstalled-${{ matrix.flavor }}-arm64-${{ matrix.board }}
           path: ./images/ubuntu-*-preinstalled-${{ matrix.flavor }}-arm64-${{ matrix.board }}.*
           if-no-files-found: error
-
-      - name: Clean cache
-        shell: bash
-        run: sync && sudo rm -rf ./images/ ./build/ && sync

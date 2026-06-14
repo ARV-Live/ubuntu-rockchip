@@ -67,11 +67,18 @@ export ARCH=arm64
 export IMAGEFORMAT=none
 export IMAGE_TARGETS=none
 
+# On a native arm64 host (e.g. ubuntu-24.04-arm runners) debootstrap runs
+# directly; the qemu-user bootstrap shim is only needed when building on a
+# foreign architecture (e.g. x86 runners).
+qemu_args=()
+if [ "$(dpkg --print-architecture)" != "arm64" ]; then
+    qemu_args=(--bootstrap-qemu-arch arm64 --bootstrap-qemu-static /usr/bin/qemu-aarch64-static)
+fi
+
 # Populate the configuration directory for live build
 lb config \
     --architecture arm64 \
-    --bootstrap-qemu-arch arm64 \
-    --bootstrap-qemu-static /usr/bin/qemu-aarch64-static \
+    "${qemu_args[@]}" \
     --archive-areas "main restricted universe multiverse" \
     --parent-archive-areas "main restricted universe multiverse" \
     --mirror-bootstrap "http://ports.ubuntu.com" \
