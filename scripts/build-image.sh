@@ -189,8 +189,8 @@ fi
 
 # Run build image hook to handle board specific changes
 if [[ $(type -t build_image_hook__"${BOARD}") == function ]]; then
-    build_image_hook__"${BOARD}"
-fi 
+    build_image_hook__"${BOARD}" "${mount_point}/writable"
+fi
 
 chroot ${mount_point}/writable/ u-boot-update
 

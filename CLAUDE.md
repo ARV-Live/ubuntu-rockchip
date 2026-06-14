@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-This repo builds bootable Ubuntu disk images for the **Radxa ROCK 5B Plus** (Rockchip RK3588) single-board computer. It is a trimmed fork of `Joshua-Riek/ubuntu-rockchip`: upstream supports ~30 boards and several Ubuntu suites, but this fork is scoped to **one board (`rock-5b-plus`) × one suite (`noble` = Ubuntu 24.04 LTS) × two flavors (`server`, `desktop`)**. The output is a `.img.xz` per flavor.
+This repo builds bootable Ubuntu disk images for the **Radxa ROCK 5B Plus** (Rockchip RK3588) single-board computer. It is a trimmed fork of `Joshua-Riek/ubuntu-rockchip`: upstream supports ~30 boards and several Ubuntu suites, but this fork is scoped to **one board (`rock-5b-plus`) × one suite (`noble` = Ubuntu 24.04 LTS) × one flavor (`server`)**. The output is a single `.img.xz`. (The `desktop` flavor was dropped — its `lb build` is slow/flaky and unused here.)
 
 It is **not** an application codebase — there is no compiled app, no unit tests, and almost everything is Bash plus declarative shell-config files and Debian packaging.
 
@@ -14,7 +14,7 @@ The build **must run as root on an `arm64`-capable Linux host** (CI uses `ubuntu
 
 ```bash
 # Full image: kernel (if missing) -> u-boot (if missing) -> rootfs -> disk image
-sudo ./build.sh --board=rock-5b-plus --suite=noble --flavor=desktop
+sudo ./build.sh --board=rock-5b-plus --suite=noble --flavor=server
 
 # Partial builds (each maps to a script in scripts/)
 sudo ./build.sh --suite=noble --kernel-only               # -> build/linux-*.deb
@@ -24,7 +24,7 @@ sudo ./build.sh --suite=noble --flavor=server --rootfs-only  # -> build/ubuntu-*
 # Discover valid argument values
 ./build.sh --board=help     # lists config/boards/*  (only rock-5b-plus)
 ./build.sh --suite=help     # lists config/suites/*  (only noble)
-./build.sh --flavor=help    # lists config/flavors/* (server, desktop)
+./build.sh --flavor=help    # lists config/flavors/* (server)
 
 ./build.sh --clean ...      # wipe build/ first (also unmounts stale chroot mounts)
 ./build.sh --launchpad ...  # pull prebuilt kernel/u-boot from the jjriek PPA instead of compiling
@@ -57,7 +57,7 @@ Key separation (inherited from upstream): **the rootfs is board-independent**; e
 Board behavior lives entirely in `config/boards/rock-5b-plus.sh`. It exports metadata (`BOARD_NAME`, `BOARD_SOC`, ...), the U-Boot build target (`UBOOT_PACKAGE=u-boot-radxa-rk3588` + `UBOOT_RULES_TARGET=rock-5b-plus-rk3588`), `COMPATIBLE_SUITES`/`COMPATIBLE_FLAVORS` arrays, and defines a function:
 
 - `config_image_hook__rock-5b-plus(rootfs, overlay, suite)` — runs **inside `config-image.sh`** after the kernel/u-boot are installed, with the chroot mounted. It `chroot ... apt-get install`s the board's multimedia firmware (panfork Mesa, libmali, camera-engine), copies files from `overlay/`, and `systemctl enable`s board services (e.g. `alsa-audio-config`). This is the place to add board-specific runtime setup.
-- `build_image_hook__<board>()` — optional, runs in `build-image.sh` after the bootloader is written (currently unused, but the dispatch exists).
+- `build_image_hook__rock-5b-plus(writable)` — runs in `build-image.sh` after the rootfs is laid onto the image and right *before* `u-boot-update`, with `$1` = the mounted writable root. Used here to apply the HDMI-in audio fix: `scripts/fix-hdmiin-audio.sh` compiles `scripts/fix-hdmiin-audio.dts` to a `.dtbo`, drops it in the kernel's `device-tree/rockchip/overlay/` dir, and registers it in `/etc/default/u-boot` (`U_BOOT_FDT_OVERLAYS`) so `u-boot-update` writes it into the extlinux config (issue #1057). This hook is the right place for anything that must touch the final on-disk image (dtbs, bootloader config) rather than the chroot.
 
 `UBOOT_PACKAGE` points at `packages/u-boot-radxa-rk3588`, a Debian `debian/` overlay (`rules`, `targets.mk`, `upstream` pinning a git COMMIT/BRANCH, `patches/`, `rkbin/` blobs) grafted onto upstream U-Boot source. `UBOOT_RULES_TARGET` selects which board target inside that tree to build. (Upstream had four such trees for different SoC families; this fork keeps only the radxa-rk3588 one the ROCK 5B+ uses.)
 

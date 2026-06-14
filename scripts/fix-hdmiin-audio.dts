@@ -1,0 +1,42 @@
+// HDMI-in audio fix for the Radxa ROCK 5B+ (Rockchip RK3588).
+//
+// The stock device tree binds the "hdmiin-sound" card to a DUMMY codec, so
+// the HDMI-RX capture device shows up but produces no audio (and spams
+// "snd_soc_dai_hw_params ... -22" in dmesg). This overlay rebinds the card
+// to the real hdmirx controller as its codec and adds #sound-dai-cells to it.
+//
+// Source: https://github.com/Joshua-Riek/ubuntu-rockchip/issues/1057#issuecomment-3531359394
+// via https://github.com/moo-the-cow/streaming-tools (misc/hdmiin-fix.dts)
+//
+// Compiled to hdmiin-fix.dtbo and registered in /etc/default/u-boot
+// (U_BOOT_FDT_OVERLAYS) by scripts/fix-hdmiin-audio.sh during the image build.
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&hdmirx_ctrler>;
+        __overlay__ {
+            #sound-dai-cells = <1>;
+        };
+    };
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            hdmiin-sound {
+                compatible = "rockchip,hdmi";
+                rockchip,mclk-fs = <128>;
+                rockchip,format = "i2s";
+                rockchip,bitclock-master = <&hdmirx_ctrler>;
+                rockchip,frame-master = <&hdmirx_ctrler>;
+                rockchip,card-name = "rockchip-hdmiin";
+                rockchip,cpu = <&i2s7_8ch>;
+                rockchip,codec = <&hdmirx_ctrler 0>;
+                rockchip,jack-det;
+                status = "okay";
+            };
+        };
+    };
+};
