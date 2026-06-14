@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Create empty release
         id: release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v2.4.2
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -33,7 +33,7 @@ jobs:
       rootfs_matrix: ${{ steps.rootfs.outputs.rootfs_matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build matrix
         id: build
@@ -77,11 +77,11 @@ jobs:
           android: true
           dotnet: true
           haskell: true
-          large-packages: true
+          large-packages: false
           swap-storage: true
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set environment variables
         id: vars
@@ -100,20 +100,12 @@ jobs:
           python-is-python3 fdisk bc debhelper python3-pyelftools python3-setuptools \
           python3-pkg-resources swig libfdt-dev libpython3-dev dctrl-tools
 
-      - name: Cache live-build downloads
-        uses: actions/cache@v4
-        with:
-          path: build/live-build/cache
-          key: lb-cache-${{ matrix.suite }}-${{ matrix.flavor }}-${{ github.run_id }}
-          restore-keys: |
-            lb-cache-${{ matrix.suite }}-${{ matrix.flavor }}-
-
       - name: Build
         shell: bash
         run: sudo ./build.sh --suite=${{ matrix.suite }} --flavor=${{ matrix.flavor }} --rootfs-only --launchpad
 
       - name: Upload
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v7
         with:
             name: ubuntu-${{ steps.vars.outputs.suite_version }}-preinstalled-${{ matrix.flavor }}-arm64-rootfs
             path: ./build/ubuntu-${{ steps.vars.outputs.suite_version }}-preinstalled-${{ matrix.flavor }}-arm64.rootfs.tar.xz
@@ -133,11 +125,11 @@ jobs:
           android: true
           dotnet: true
           haskell: true
-          large-packages: true
+          large-packages: false
           swap-storage: true
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set environment variables
         id: vars
@@ -146,7 +138,7 @@ jobs:
           echo "suite_version=$RELASE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Checkout rootfs
-        uses: actions/download-artifact@v4.1.2
+        uses: actions/download-artifact@v8
         with:
             name: ubuntu-${{ steps.vars.outputs.suite_version }}-preinstalled-${{ matrix.flavor }}-arm64-rootfs
             path: ./build/
