@@ -173,7 +173,7 @@ else
 fi
 
 # Copy the rootfs to root partition
-tar -xpf "${rootfs}" -C ${mount_point}/writable
+tar --xattrs --xattrs-include='*' -xpf "${rootfs}" -C ${mount_point}/writable
 
 # Create fstab entries
 echo "# <file system>     <mount point>  <type>  <options>   <dump>  <fsck>" > ${mount_point}/writable/etc/fstab
