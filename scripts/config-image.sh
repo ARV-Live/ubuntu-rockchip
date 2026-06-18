@@ -128,6 +128,15 @@ overlay_dir=../overlay
 rm -rf ${chroot_dir} && mkdir -p ${chroot_dir}
 tar --xattrs --xattrs-include='*' -xpJf "ubuntu-${RELASE_VERSION}-preinstalled-${FLAVOR}-arm64.rootfs.tar.xz" -C ${chroot_dir}
 
+# Migrate the PPAs off the deprecated ppa.launchpad.net host (retired by
+# Launchpad in 2023) onto the current ppa.launchpadcontent.net, and force https
+# so apt cannot fall back to plaintext on port 80. Done before apt-get update so
+# the build itself uses the corrected sources; the panfork PPA added later by
+# add-apt-repository already points at the new host.
+find "${chroot_dir}/etc/apt/sources.list.d/" -type f \( -name '*.list' -o -name '*.sources' \) -print0 \
+    | xargs -0 -r sed -i -e 's|ppa\.launchpad\.net|ppa.launchpadcontent.net|g' \
+                         -e 's|http://ppa\.launchpadcontent\.net|https://ppa.launchpadcontent.net|g'
+
 # Mount the root filesystem
 setup_mountpoint $chroot_dir
 

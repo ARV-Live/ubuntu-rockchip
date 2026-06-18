@@ -81,14 +81,14 @@ lb config \
     "${qemu_args[@]}" \
     --archive-areas "main restricted universe multiverse" \
     --parent-archive-areas "main restricted universe multiverse" \
-    --mirror-bootstrap "http://ports.ubuntu.com" \
-    --parent-mirror-bootstrap "http://ports.ubuntu.com" \
-    --mirror-chroot-security "http://ports.ubuntu.com" \
-    --parent-mirror-chroot-security "http://ports.ubuntu.com" \
-    --mirror-binary-security "http://ports.ubuntu.com" \
-    --parent-mirror-binary-security "http://ports.ubuntu.com" \
-    --mirror-binary "http://ports.ubuntu.com" \
-    --parent-mirror-binary "http://ports.ubuntu.com" \
+    --mirror-bootstrap "https://ports.ubuntu.com" \
+    --parent-mirror-bootstrap "https://ports.ubuntu.com" \
+    --mirror-chroot-security "https://ports.ubuntu.com" \
+    --parent-mirror-chroot-security "https://ports.ubuntu.com" \
+    --mirror-binary-security "https://ports.ubuntu.com" \
+    --parent-mirror-binary-security "https://ports.ubuntu.com" \
+    --mirror-binary "https://ports.ubuntu.com" \
+    --parent-mirror-binary "https://ports.ubuntu.com" \
     --keyring-packages ubuntu-keyring \
     --linux-flavours "${KERNEL_FLAVOR}"
 
