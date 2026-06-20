@@ -8,8 +8,8 @@
 // Source: https://github.com/Joshua-Riek/ubuntu-rockchip/issues/1057#issuecomment-3531359394
 // via https://github.com/moo-the-cow/streaming-tools (misc/hdmiin-fix.dts)
 //
-// Compiled to hdmiin-fix.dtbo and registered in /etc/default/u-boot
-// (U_BOOT_FDT_OVERLAYS) by scripts/fix-hdmiin-audio.sh during the image build.
+// Compiled to hdmiin-audio.dtbo and registered in /etc/default/u-boot
+// (U_BOOT_FDT_OVERLAYS) by scripts/install-dt-overlay.sh during the image build.
 
 /dts-v1/;
 /plugin/;

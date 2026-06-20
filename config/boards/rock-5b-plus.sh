@@ -27,6 +27,29 @@ function config_image_hook__rock-5b-plus() {
         # Install the rockchip camera engine
         chroot "${rootfs}" apt-get -y install camera-engine-rkaiq-rk3588
 
+        # Install additional runtime packages for the image. gstreamer1.0-rockchip1
+        # comes from the jjriek rockchip-multimedia PPA configured above; the rest
+        # are stock Ubuntu. (The request listed "alsa", which is not a real Ubuntu
+        # package, so alsa-utils is installed instead.)
+        chroot "${rootfs}" apt-get -y install \
+            nodejs \
+            gstreamer1.0-tools \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav \
+            gstreamer1.0-rockchip1 \
+            gstreamer1.0-alsa \
+            network-manager \
+            modemmanager \
+            hostapd \
+            nftables \
+            v4l-utils \
+            nginx \
+            sqlite3 \
+            alsa-utils
+
         # Fix and configure audio device
         mkdir -p "${rootfs}/usr/lib/scripts"
         cp "${overlay}/usr/lib/scripts/alsa-audio-config" "${rootfs}/usr/lib/scripts/alsa-audio-config"
@@ -42,12 +65,18 @@ function config_image_hook__rock-5b-plus() {
 function build_image_hook__rock-5b-plus() {
     local writable="$1"
 
-    # Fix HDMI-in audio capture (issue #1057): the stock device tree binds
-    # the HDMI-RX sound card to a DUMMY codec, so there is no input. Apply a
-    # device-tree overlay that rebinds it to the real hdmirx controller.
-    local here
+    # Apply device-tree overlays right before u-boot-update writes the extlinux
+    # config. Each .dts is compiled to a .dtbo and registered in U_BOOT_FDT_OVERLAYS.
+    local here overlays
     here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-    "${here}/../../scripts/fix-hdmiin-audio.sh" "${writable}"
+    overlays="${here}/../../scripts/overlays"
+
+    # HDMI-in audio capture fix (issue #1057): rebinds the HDMI-RX sound card
+    # off the DUMMY codec onto the real hdmirx controller.
+    "${here}/../../scripts/install-dt-overlay.sh" "${writable}" "${overlays}/hdmiin-audio.dts"
+
+    # Constant fan speed: pin the pwm-fan (fan0) cooling-levels high.
+    "${here}/../../scripts/install-dt-overlay.sh" "${writable}" "${overlays}/fan-cooling.dts"
 
     return 0
 }

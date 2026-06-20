@@ -1,0 +1,20 @@
+// Fan speed overlay for the Radxa ROCK 5B+ (Rockchip RK3588).
+//
+// Overrides the pwm-fan (fan0) cooling-levels so every thermal cooling state
+// maps to the same PWM duty (223/255 ~= 87%), i.e. the fan runs at a constant
+// high speed instead of ramping with temperature.
+//
+// Compiled to fan-cooling.dtbo and registered in /etc/default/u-boot
+// (U_BOOT_FDT_OVERLAYS) by scripts/install-dt-overlay.sh during the image build.
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&fan0>;
+        __overlay__ {
+            cooling-levels = <223 223 223 223 223 223 223 223 223>;
+        };
+    };
+};
