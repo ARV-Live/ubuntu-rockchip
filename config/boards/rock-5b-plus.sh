@@ -78,5 +78,22 @@ function build_image_hook__rock-5b-plus() {
     # Constant fan speed: pin the pwm-fan (fan0) cooling-levels high.
     "${here}/../../scripts/install-dt-overlay.sh" "${writable}" "${overlays}/fan-cooling.dts"
 
+    # Classic network interface names (eth0/wlan0): disable predictable naming
+    # on the kernel command line. u-boot-update (run next in build-image.sh)
+    # bakes U_BOOT_PARAMETERS into the extlinux config. Append rather than
+    # overwrite, so any parameters the image already ships are preserved.
+    local defu="${writable}/etc/default/u-boot"
+    if [ -f "${defu}" ]; then
+        local cur merged f
+        cur="$(sed -n -E 's/^[[:space:]]*U_BOOT_PARAMETERS="?([^"]*)"?.*/\1/p' "${defu}" | head -n1)"
+        merged="${cur}"
+        for f in net.ifnames=0 biosdevname=0; do
+            case " ${merged} " in *" ${f} "*) ;; *) merged="${merged:+${merged} }${f}" ;; esac
+        done
+        sed -i -E '/^[[:space:]]*#?[[:space:]]*U_BOOT_PARAMETERS=/d' "${defu}"
+        echo "U_BOOT_PARAMETERS=\"${merged}\"" >> "${defu}"
+        echo "Set kernel parameters: U_BOOT_PARAMETERS=\"${merged}\""
+    fi
+
     return 0
 }
