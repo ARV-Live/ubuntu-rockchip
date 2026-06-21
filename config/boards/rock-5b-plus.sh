@@ -56,6 +56,14 @@ function config_image_hook__rock-5b-plus() {
         cp "${overlay}/usr/lib/scripts/alsa-audio-config" "${rootfs}/usr/lib/scripts/alsa-audio-config"
         cp "${overlay}/usr/lib/systemd/system/alsa-audio-config.service" "${rootfs}/usr/lib/systemd/system/alsa-audio-config.service"
         chroot "${rootfs}" systemctl enable alsa-audio-config
+
+        # Classic interface names (eth0/wlan0): mask systemd's predictable
+        # naming .link so udev keeps the kernel-assigned names. This is a
+        # rootfs-only change applied here in the chroot, independent of the
+        # net.ifnames=0 kernel parameter set in build_image_hook (which relies
+        # on the u-boot-update cmdline path); either alone yields classic names.
+        mkdir -p "${rootfs}/etc/systemd/network"
+        ln -sf /dev/null "${rootfs}/etc/systemd/network/99-default.link"
     fi
 
     return 0
