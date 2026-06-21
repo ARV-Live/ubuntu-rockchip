@@ -48,7 +48,8 @@ function config_image_hook__rock-5b-plus() {
             v4l-utils \
             nginx \
             sqlite3 \
-            alsa-utils
+            alsa-utils \
+            libasound2-dev
 
         # Fix and configure audio device
         mkdir -p "${rootfs}/usr/lib/scripts"
