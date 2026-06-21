@@ -17,14 +17,20 @@
 # Some additional examples are provided in comments below the default
 # configuration.
 
-# The (default) ubuntu user needs the video group for GPU/hardware
-# acceleration and the audio group to open /dev/snd/* without root. Note this
-# list *replaces* the default user's supplementary groups (it does not extend
-# them), so any group the user should keep must be listed here explicitly.
+# Create the default ubuntu user with cloud-init's normal defaults.
 users:
   - default
-  - name: ubuntu
-    groups: [audio, netdev, video]
+
+# Put the default user in the hardware-access groups on first boot. This is done
+# here, not via a `groups:` list on the user above, because a groups list on a
+# user that also matches `default` is applied unreliably and was silently
+# dropped on this image (so the audio group never stuck). `usermod -aG` always
+# appends; the getent guard skips any group that happens to be absent so
+# first-boot setup never fails on it.
+#   audio  - /dev/snd/* (sound)        render - /dev/dri/renderD* (GPU compute)
+#   netdev - manage networking         video  - /dev/dri/card*   (GPU / HW accel)
+runcmd:
+  - 'for g in audio netdev render video; do getent group "$g" >/dev/null 2>&1 && usermod -aG "$g" ubuntu || true; done'
 
 # On first boot, set the (default) ubuntu user's password to "ubuntu" and
 # expire user passwords
