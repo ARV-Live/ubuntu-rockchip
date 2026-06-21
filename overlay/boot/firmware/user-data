@@ -17,11 +17,14 @@
 # Some additional examples are provided in comments below the default
 # configuration.
 
-# The (default) ubuntu user must be in the video group for hardware acceleration
+# The (default) ubuntu user needs the video group for GPU/hardware
+# acceleration and the audio group to open /dev/snd/* without root. Note this
+# list *replaces* the default user's supplementary groups (it does not extend
+# them), so any group the user should keep must be listed here explicitly.
 users:
   - default
   - name: ubuntu
-    groups: video
+    groups: [audio, netdev, video]
 
 # On first boot, set the (default) ubuntu user's password to "ubuntu" and
 # expire user passwords
