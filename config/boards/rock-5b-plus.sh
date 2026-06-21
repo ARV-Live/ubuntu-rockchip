@@ -33,6 +33,7 @@ function config_image_hook__rock-5b-plus() {
         # package, so alsa-utils is installed instead.)
         chroot "${rootfs}" apt-get -y install \
             nodejs \
+            npm \
             gstreamer1.0-tools \
             gstreamer1.0-plugins-base \
             gstreamer1.0-plugins-good \
@@ -50,6 +51,10 @@ function config_image_hook__rock-5b-plus() {
             sqlite3 \
             alsa-utils \
             libasound2-dev
+
+        # Install pnpm globally via npm (there is no apt package for it). Baked
+        # into the image so it is available offline to every user on PATH.
+        chroot "${rootfs}" npm install -g pnpm
 
         # Fix and configure audio device
         mkdir -p "${rootfs}/usr/lib/scripts"
