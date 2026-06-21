@@ -56,6 +56,14 @@ if [[ -z ${BOARD} ]]; then
     exit 1
 fi
 
+# build-image.sh runs as a child process of config-image.sh, so the board
+# config sourced there is not in scope here and build_image_hook__${BOARD}
+# would be undefined -- the type -t check below would silently skip it, taking
+# the device-tree overlays and kernel cmdline params with it. Source it again
+# so the hook is defined in this process.
+# shellcheck source=/dev/null
+source "../config/boards/${BOARD}.sh"
+
 # Create an empty disk image
 img="../images/$(basename "${rootfs}" .rootfs.tar)${KVER}.img"
 size="$(( $(wc -c < "${rootfs}" ) / 1024 / 1024 ))"
