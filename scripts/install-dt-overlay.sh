@@ -8,7 +8,8 @@
 # in build-image.sh, after the rootfs is laid onto the image and right before
 # u-boot-update runs. Given the mounted writable root and a .dts, it:
 #   1. compiles <overlay>.dts -> <overlay>.dtbo (dtc, overlay mode)
-#   2. drops it into the kernel's device-tree/rockchip/overlay/ directory
+#   2. drops it into /usr/lib/firmware/<kver>/device-tree/rockchip/overlay/
+#      (alongside the kernel's stock overlays)
 #   3. appends it to U_BOOT_FDT_OVERLAYS in /etc/default/u-boot (preserving any
 #      overlays already registered, so it is safe to call once per overlay)
 
@@ -32,23 +33,18 @@ if ! command -v dtc > /dev/null; then
 fi
 
 name="$(basename "${dts%.dts}")"
-boot="${writable}/boot/firmware"
-overlay_ref="device-tree/rockchip/overlay/${name}.dtbo"
-overlay_dir="${boot}/device-tree/rockchip/overlay"
 
-# The kernel ships its overlays under <boot>/device-tree/rockchip/overlay
-# (device-tree is a symlink to the current kernel's dtb dir). If that layout is
-# not present, discover an existing overlay dir and reference by relative path.
-if [ ! -e "${boot}/device-tree" ]; then
-    found="$(find "${boot}" -type d -path '*rockchip/overlay' 2>/dev/null | head -n1)"
-    if [ -z "${found}" ]; then
-        echo "Error: could not locate a device-tree overlay directory under ${boot}"
-        exit 1
-    fi
-    overlay_dir="${found}"
-    overlay_ref="${found#"${boot}"/}/${name}.dtbo"
+# The kernel's overlays live at /usr/lib/firmware/<kver>/device-tree/rockchip/overlay
+# (/lib -> /usr/lib via usrmerge); the stock ones (orangepi-5-*.dtbo, ...) sit
+# there. u-boot-update references overlays as device-tree/rockchip/overlay/<name>.dtbo,
+# relative to the per-kernel FDT dir (U_BOOT_FDT_OVERLAYS_DIR=/lib/firmware/ +
+# kernel version). Drop ours in that same directory and use the same relative ref.
+overlay_ref="device-tree/rockchip/overlay/${name}.dtbo"
+overlay_dir="$(find "${writable}/usr/lib/firmware" -type d -path '*/device-tree/rockchip/overlay' 2>/dev/null | sort | tail -n1)"
+if [ -z "${overlay_dir}" ]; then
+    echo "Error: could not locate */device-tree/rockchip/overlay under ${writable}/usr/lib/firmware"
+    exit 1
 fi
-mkdir -p "${overlay_dir}"
 
 echo "Installing device-tree overlay -> ${overlay_dir}/${name}.dtbo"
 # -@ keeps the __symbols__/__fixups__ needed to resolve the &phandle references
